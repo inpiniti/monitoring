@@ -688,21 +688,36 @@ export default function App() {
     const userPasswd = form.userPasswd.value;
 
     try {
-      console.log('🔐 로그인 시도...');
+      console.log('🔐 로그인 시도...', { API_BASE });
       const params = new URLSearchParams();
       params.append('action', 'login');
       params.append('userName', userName);
       params.append('userPasswd', userPasswd);
       params.append('g-recaptcha-response', '');
 
-      const response = await fetch(`${API_BASE}/ajax/users?action=login`, {
+      const url = `${API_BASE}/ajax/users?action=login`;
+      console.log('📡 Request URL:', url);
+      console.log('📤 Request body:', params.toString());
+
+      const response = await fetch(url, {
         method: 'POST',
         body: params,
         credentials: 'include',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       });
 
-      const result = await response.json();
+      console.log('📥 Response status:', response.status);
+      const responseText = await response.text();
+      console.log('📥 Response text:', responseText);
+
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('❌ Failed to parse JSON response:', parseError);
+        throw new Error(`Invalid server response: ${responseText.substring(0, 100)}`);
+      }
+
       console.log('📥 Login response:', result);
 
       if (result.code === 0) {
