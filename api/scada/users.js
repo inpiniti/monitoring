@@ -51,8 +51,10 @@ export default async function handler(req, res) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         },
         body: bodyString,
+        credentials: 'include',
       });
 
       console.log('🔐 Login response status:', response.status);

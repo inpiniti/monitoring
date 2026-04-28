@@ -36,6 +36,7 @@ export default async function handler(req, res) {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: body.toString(),
+        credentials: 'include',
       });
 
       const data = await response.json();
@@ -45,6 +46,7 @@ export default async function handler(req, res) {
     const response = await fetch(url, {
       method: 'GET',
       headers: { 'Accept': 'application/json' },
+      credentials: 'include',
     });
 
     const data = await response.json();

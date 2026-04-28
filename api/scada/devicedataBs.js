@@ -42,6 +42,7 @@ export default async function handler(req, res) {
     const response = await fetch(url, {
       method: 'GET',
       headers: { 'Accept': 'application/json' },
+      credentials: 'include',
     });
 
     const data = await response.json();
