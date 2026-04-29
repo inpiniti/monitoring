@@ -716,6 +716,10 @@ export default function App() {
       });
 
       console.log('📥 Response status:', response.status);
+      console.log('📥 Response headers:', {
+        'Set-Cookie': response.headers.get('Set-Cookie'),
+        'Content-Type': response.headers.get('Content-Type'),
+      });
       const responseText = await response.text();
       console.log('📥 Response text:', responseText);
 

@@ -83,6 +83,13 @@ export default async function handler(req, res) {
       const responseText = await response.text();
       console.log(`[SCADA API] Response (${response.status}):`, responseText.substring(0, 200));
 
+      // 백엔드의 Set-Cookie를 클라이언트로 전달
+      const setCookie = response.headers.get('Set-Cookie');
+      console.log(`[SCADA API] Set-Cookie from backend:`, setCookie?.substring(0, 50) || 'none');
+      if (setCookie) {
+        res.setHeader('Set-Cookie', setCookie);
+      }
+
       let data;
       try {
         data = JSON.parse(responseText);
@@ -115,6 +122,13 @@ export default async function handler(req, res) {
 
       const responseText = await response.text();
       console.log(`[SCADA API] Response (${response.status}):`, responseText.substring(0, 200));
+
+      // 백엔드의 Set-Cookie를 클라이언트로 전달
+      const setCookie = response.headers.get('Set-Cookie');
+      console.log(`[SCADA API] Set-Cookie from backend:`, setCookie?.substring(0, 50) || 'none');
+      if (setCookie) {
+        res.setHeader('Set-Cookie', setCookie);
+      }
 
       let data;
       try {
