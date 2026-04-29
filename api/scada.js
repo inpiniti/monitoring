@@ -65,8 +65,12 @@ export default async function handler(req, res) {
         'User-Agent': 'Mozilla/5.0',
       };
       // 클라이언트로부터 받은 쿠키를 백엔드로 전달
+      console.log(`[SCADA API] req.headers.cookie:`, req.headers.cookie);
       if (req.headers.cookie) {
         headers['Cookie'] = req.headers.cookie;
+        console.log(`[SCADA API] Forwarding cookie:`, req.headers.cookie.substring(0, 50));
+      } else {
+        console.log('[SCADA API] No cookie received!');
       }
 
       const response = await fetch(url, {
@@ -95,8 +99,12 @@ export default async function handler(req, res) {
     } else if (req.method === 'GET') {
       const headers = { 'Accept': 'application/json' };
       // 클라이언트로부터 받은 쿠키를 백엔드로 전달
+      console.log(`[SCADA API] req.headers.cookie:`, req.headers.cookie);
       if (req.headers.cookie) {
         headers['Cookie'] = req.headers.cookie;
+        console.log(`[SCADA API] Forwarding cookie:`, req.headers.cookie.substring(0, 50));
+      } else {
+        console.log('[SCADA API] No cookie received!');
       }
 
       const response = await fetch(url, {
