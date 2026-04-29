@@ -16,7 +16,9 @@ import {
 import 'leaflet/dist/leaflet.css';
 
 // ─── API Service ────────────────────────────────────────────────────
-const API_BASE = '/api';
+// Vercel에서는 단일 /api/scada 엔드포인트로 모든 요청을 라우팅
+// path 파라미터로 실제 경로를 전달
+const API_BASE = '/api/scada';
 
 const getTimestamp = (date = new Date()) => {
   const pad = (n) => String(n).padStart(2, '0');
@@ -26,7 +28,7 @@ const getTimestamp = (date = new Date()) => {
 async function fetchDeviceList() {
   try {
     console.log('🔄 Fetching device list from API...');
-    const response = await fetch(`${API_BASE}/ajax/devices?action=list&searchType=&searchStatusUse=Active`);
+    const response = await fetch(`${API_BASE}?path=/ajax/devices&action=list&searchType=&searchStatusUse=Active`);
     if (!response.ok) throw new Error(`API error: ${response.status}`);
     const result = await response.json();
     if (result.code !== 0) throw new Error(result.message);
@@ -45,7 +47,7 @@ async function fetchDeviceDetail(device) {
     const to = getTimestamp(now);
     const from = getTimestamp(new Date(now.getTime() - 12 * 3600000));
     const response = await fetch(
-      `${API_BASE}/ajax/devicedataBs?action=list2&site=${device.site}&type=${device.type}&deviceKey=${device.deviceKey}&statusDatetimeFr=${from}&statusDatetimeTo=${to}&uuid=${from}_${to}`
+      `${API_BASE}?path=/ajax/devicedataBs&action=list2&site=${device.site}&type=${device.type}&deviceKey=${device.deviceKey}&statusDatetimeFr=${from}&statusDatetimeTo=${to}&uuid=${from}_${to}`
     );
     if (!response.ok) throw new Error(`API error: ${response.status}`);
     const result = await response.json();
@@ -63,13 +65,16 @@ async function postSpcRefresh(recordId) {
     return { success: true };
   }
   try {
-    const formData = new FormData();
-    formData.append('action', 'spcRefresh');
-    formData.append('record', recordId);
-    formData.append('statusOnly', 'false');
-    const response = await fetch(`${API_BASE}/ajax/devices`, {
+    const params = new URLSearchParams();
+    params.append('path', '/ajax/devices');
+    params.append('action', 'spcRefresh');
+    params.append('record', recordId);
+    params.append('statusOnly', 'false');
+
+    const response = await fetch(`${API_BASE}`, {
       method: 'POST',
-      body: formData
+      body: params,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     });
     if (!response.ok) throw new Error(`API error: ${response.status}`);
     const result = await response.json();

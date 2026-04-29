@@ -1,9 +1,9 @@
 /**
- * Vercel Serverless Function: SCADA API 프록시 (사용자 인증)
- * /api/scada/ajax/users 엔드포인트 - 로그인 및 로그아웃 처리
+ * Vercel Serverless Function: SCADA API 통합 프록시
+ * 모든 SCADA API 요청을 처리하는 단일 엔드포인트
  */
 
-const SCADA_API = 'https://service.pgskorea.co.kr';
+const SCADA_API = 'https://service.pgskorea.co.kr/scada';
 
 export default async function handler(req, res) {
   // CORS 헤더 설정
@@ -17,21 +17,31 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { action } = req.query;
-    const url = `${SCADA_API}/scada/ajax/users?action=${action || 'login'}`;
+    // 전체 경로 재구성: /api/scada?path=/ajax/users&action=login → /scada/ajax/users?action=login
+    const { path, ...queryParams } = req.query;
+
+    if (!path) {
+      return res.status(400).json({
+        code: -1,
+        message: 'path parameter is required',
+        error: {},
+      });
+    }
+
+    // 쿼리 문자열 구성
+    const queryString = new URLSearchParams(queryParams).toString();
+    const url = `${SCADA_API}${path}${queryString ? '?' + queryString : ''}`;
+
+    console.log(`[SCADA API] ${req.method} ${url}`);
 
     if (req.method === 'POST') {
-      // POST 요청: 로그인
       let bodyString = '';
 
       if (typeof req.body === 'string') {
-        // 이미 문자열인 경우 (URLSearchParams)
         bodyString = req.body;
       } else if (req.body instanceof Buffer) {
-        // Buffer인 경우
         bodyString = req.body.toString('utf-8');
       } else if (req.body instanceof Object) {
-        // JSON 객체인 경우
         const params = new URLSearchParams();
         Object.keys(req.body).forEach(key => {
           params.append(key, req.body[key]);
@@ -45,21 +55,18 @@ export default async function handler(req, res) {
         });
       }
 
-      console.log('🔐 Login request body:', bodyString);
-
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'User-Agent': 'Mozilla/5.0',
         },
         body: bodyString,
         credentials: 'include',
       });
 
-      console.log('🔐 Login response status:', response.status);
       const responseText = await response.text();
-      console.log('🔐 Login response:', responseText);
+      console.log(`[SCADA API] Response (${response.status}):`, responseText.substring(0, 200));
 
       let data;
       try {
@@ -70,13 +77,11 @@ export default async function handler(req, res) {
           code: -1,
           message: 'Invalid JSON response from API',
           error: {},
-          rawResponse: responseText,
         });
       }
 
       return res.status(200).json(data);
     } else if (req.method === 'GET') {
-      // GET 요청: 로그아웃 등
       const response = await fetch(url, {
         method: 'GET',
         headers: { 'Accept': 'application/json' },
@@ -84,6 +89,8 @@ export default async function handler(req, res) {
       });
 
       const responseText = await response.text();
+      console.log(`[SCADA API] Response (${response.status}):`, responseText.substring(0, 200));
+
       let data;
       try {
         data = JSON.parse(responseText);
@@ -97,15 +104,9 @@ export default async function handler(req, res) {
       }
 
       return res.status(200).json(data);
-    } else {
-      return res.status(405).json({
-        code: -1,
-        message: 'Method not allowed',
-        error: {},
-      });
     }
   } catch (error) {
-    console.error('API Error:', error);
+    console.error('[SCADA API] Error:', error);
     return res.status(500).json({
       code: -1,
       message: `Server error: ${error.message}`,

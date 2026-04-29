@@ -6,10 +6,11 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api': {
-        target: 'https://service.pgskorea.co.kr/scada',
+      '/api/scada': {
+        target: 'https://service.pgskorea.co.kr',
         changeOrigin: true,
         secure: false,
+        pathRewrite: { '^/api/scada': '/scada' },
         ws: true,
       }
     }
