@@ -26,7 +26,8 @@ export default async function handler(req, res) {
 
   try {
     // 전체 경로 재구성: /api/scada?path=/ajax/users&action=login → /scada/ajax/users?action=login
-    const { path, ...queryParams } = req.query;
+    // _sc는 세션 쿠키 (쿼리로 전달, 백엔드 호출 시 쿠키로 변환)
+    const { path, _sc, ...queryParams } = req.query;
 
     if (!path) {
       return res.status(400).json({
@@ -36,11 +37,12 @@ export default async function handler(req, res) {
       });
     }
 
-    // 쿼리 문자열 구성
+    // 쿼리 문자열 구성 (_sc는 제외 - 백엔드로 전달 안 함)
     const queryString = new URLSearchParams(queryParams).toString();
     const url = `${SCADA_API}${path}${queryString ? '?' + queryString : ''}`;
 
     console.log(`[SCADA API] ${req.method} ${url}`);
+    console.log(`[SCADA API] Session cookie from query: ${_sc ? _sc.substring(0, 50) : 'none'}`);
 
     if (req.method === 'POST') {
       let bodyString = '';
@@ -72,11 +74,8 @@ export default async function handler(req, res) {
         'Content-Type': 'application/x-www-form-urlencoded',
         'User-Agent': 'Mozilla/5.0',
       };
-      // 클라이언트로부터 받은 쿠키를 백엔드로 전달
-      // X-Session-Cookie 헤더를 우선 확인 (브라우저가 Cookie 헤더 직접 설정 금지)
-      const clientCookie = req.headers['x-session-cookie'] || req.headers.cookie;
-      console.log(`[SCADA API] X-Session-Cookie:`, req.headers['x-session-cookie']?.substring(0, 50));
-      console.log(`[SCADA API] req.headers.cookie:`, req.headers.cookie);
+      // 쿠키 우선순위: 쿼리 파라미터 _sc > X-Session-Cookie 헤더 > Cookie 헤더
+      const clientCookie = _sc || req.headers['x-session-cookie'] || req.headers.cookie;
       if (clientCookie) {
         headers['Cookie'] = clientCookie;
         console.log(`[SCADA API] Forwarding cookie:`, clientCookie.substring(0, 50));
@@ -122,11 +121,8 @@ export default async function handler(req, res) {
       return res.status(200).json(data);
     } else if (req.method === 'GET') {
       const headers = { 'Accept': 'application/json' };
-      // 클라이언트로부터 받은 쿠키를 백엔드로 전달
-      // X-Session-Cookie 헤더를 우선 확인 (브라우저가 Cookie 헤더 직접 설정 금지)
-      const clientCookie = req.headers['x-session-cookie'] || req.headers.cookie;
-      console.log(`[SCADA API] X-Session-Cookie:`, req.headers['x-session-cookie']?.substring(0, 50));
-      console.log(`[SCADA API] req.headers.cookie:`, req.headers.cookie);
+      // 쿠키 우선순위: 쿼리 파라미터 _sc > X-Session-Cookie 헤더 > Cookie 헤더
+      const clientCookie = _sc || req.headers['x-session-cookie'] || req.headers.cookie;
       if (clientCookie) {
         headers['Cookie'] = clientCookie;
         console.log(`[SCADA API] Forwarding cookie:`, clientCookie.substring(0, 50));

@@ -36,13 +36,11 @@ async function fetchDeviceList() {
       return [];
     }
 
-    const headers = { 'Cookie': sessionCookie };
     console.log('🍪 Using session cookie from storage');
+    // 쿠키를 쿼리 파라미터로 전달 (헤더 차단 회피)
+    const cookieParam = `&_sc=${encodeURIComponent(sessionCookie)}`;
 
-    const response = await fetch(`${API_BASE}?path=/ajax/devices&action=list&searchType=&searchStatusUse=Active`, {
-      credentials: 'include',
-      headers,
-    });
+    const response = await fetch(`${API_BASE}?path=/ajax/devices&action=list&searchType=&searchStatusUse=Active${cookieParam}`);
 
     // 401/미인증 응답 처리
     if (response.status === 401) {
@@ -70,14 +68,11 @@ async function fetchDeviceDetail(device) {
     const to = getTimestamp(now);
     const from = getTimestamp(new Date(now.getTime() - 12 * 3600000));
     const sessionCookie = localStorage.getItem('sessionCookie');
-    const headers = {};
-    if (sessionCookie) {
-      headers['X-Session-Cookie'] = sessionCookie;
-    }
+    if (!sessionCookie) return null;
 
+    const cookieParam = `&_sc=${encodeURIComponent(sessionCookie)}`;
     const response = await fetch(
-      `${API_BASE}?path=/ajax/devicedataBs&action=list2&site=${device.site}&type=${device.type}&deviceKey=${device.deviceKey}&statusDatetimeFr=${from}&statusDatetimeTo=${to}&uuid=${from}_${to}`,
-      { credentials: 'include', headers }
+      `${API_BASE}?path=/ajax/devicedataBs&action=list2&site=${device.site}&type=${device.type}&deviceKey=${device.deviceKey}&statusDatetimeFr=${from}&statusDatetimeTo=${to}&uuid=${from}_${to}${cookieParam}`
     );
     if (!response.ok) throw new Error(`API error: ${response.status}`);
     const result = await response.json();
@@ -102,16 +97,12 @@ async function postSpcRefresh(recordId) {
     params.append('statusOnly', 'false');
 
     const sessionCookie = localStorage.getItem('sessionCookie');
-    const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
-    if (sessionCookie) {
-      headers['X-Session-Cookie'] = sessionCookie;
-    }
+    const cookieParam = sessionCookie ? `?_sc=${encodeURIComponent(sessionCookie)}` : '';
 
-    const response = await fetch(`${API_BASE}`, {
+    const response = await fetch(`${API_BASE}${cookieParam}`, {
       method: 'POST',
       body: params,
-      headers,
-      credentials: 'include',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     });
     if (!response.ok) throw new Error(`API error: ${response.status}`);
     const result = await response.json();
