@@ -1,6 +1,6 @@
 /**
  * Vercel Serverless Function: SCADA API 프록시 (사용자 인증)
- * users 엔드포인트 - 로그인 및 로그아웃 처리
+ * /api/scada/ajax/users 엔드포인트 - 로그인 및 로그아웃 처리
  */
 
 const SCADA_API = 'https://service.pgskorea.co.kr';
@@ -80,6 +80,7 @@ export default async function handler(req, res) {
       const response = await fetch(url, {
         method: 'GET',
         headers: { 'Accept': 'application/json' },
+        credentials: 'include',
       });
 
       const responseText = await response.text();
