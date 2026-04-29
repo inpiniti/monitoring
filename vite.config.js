@@ -6,8 +6,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/scada': {
-        target: 'https://service.pgskorea.co.kr',
+      '/api': {
+        target: 'https://service.pgskorea.co.kr/scada',
         changeOrigin: true,
         secure: false,
         ws: true,

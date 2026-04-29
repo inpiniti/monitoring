@@ -3,6 +3,9 @@
     "allow": [
       "Bash(git branch *)",
       "Bash(npm list *)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\USER\\git\\memo\\monitoring\\api\\scada\\ajax"
     ]
   }
 }

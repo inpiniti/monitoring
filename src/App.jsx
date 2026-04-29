@@ -16,7 +16,7 @@ import {
 import 'leaflet/dist/leaflet.css';
 
 // ─── API Service ────────────────────────────────────────────────────
-const API_BASE = import.meta.env.PROD ? '/api/scada' : '/scada';
+const API_BASE = '/api';
 
 const getTimestamp = (date = new Date()) => {
   const pad = (n) => String(n).padStart(2, '0');
