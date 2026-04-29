@@ -37,21 +37,26 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       let bodyString = '';
 
+      console.log(`[SCADA API] req.body type: ${typeof req.body}, is Buffer: ${Buffer.isBuffer(req.body)}`);
+      console.log(`[SCADA API] req.body:`, req.body);
+
       if (typeof req.body === 'string') {
         bodyString = req.body;
-      } else if (req.body instanceof Buffer) {
+      } else if (Buffer.isBuffer(req.body)) {
         bodyString = req.body.toString('utf-8');
-      } else if (req.body instanceof Object) {
+      } else if (typeof req.body === 'object' && req.body !== null) {
+        // JSON 객체인 경우
         const params = new URLSearchParams();
         Object.keys(req.body).forEach(key => {
           params.append(key, req.body[key]);
         });
         bodyString = params.toString();
       } else {
+        console.log(`[SCADA API] Invalid body format - type: ${typeof req.body}`);
         return res.status(400).json({
           code: -1,
           message: 'Invalid request format',
-          error: {},
+          error: { bodyType: typeof req.body },
         });
       }
 
