@@ -7,7 +7,15 @@ const SCADA_API = 'https://service.pgskorea.co.kr/scada';
 
 export default async function handler(req, res) {
   // CORS 헤더 설정
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // 클라이언트 도메인을 동적으로 감지
+  const origin = req.headers.origin || req.headers.referer?.split('/').slice(0, 3).join('/');
+  console.log(`[SCADA API] Request origin: ${origin}`);
+
+  // Credentials를 사용할 때는 wildcard 대신 실제 origin을 지정해야 함
+  if (origin && (origin.includes('vercel.app') || origin.includes('localhost'))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cookie');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
