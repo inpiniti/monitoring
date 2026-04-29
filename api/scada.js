@@ -17,7 +17,7 @@ export default async function handler(req, res) {
   }
 
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cookie');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cookie, X-Session-Cookie');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
 
   if (req.method === 'OPTIONS') {
@@ -73,10 +73,13 @@ export default async function handler(req, res) {
         'User-Agent': 'Mozilla/5.0',
       };
       // 클라이언트로부터 받은 쿠키를 백엔드로 전달
+      // X-Session-Cookie 헤더를 우선 확인 (브라우저가 Cookie 헤더 직접 설정 금지)
+      const clientCookie = req.headers['x-session-cookie'] || req.headers.cookie;
+      console.log(`[SCADA API] X-Session-Cookie:`, req.headers['x-session-cookie']?.substring(0, 50));
       console.log(`[SCADA API] req.headers.cookie:`, req.headers.cookie);
-      if (req.headers.cookie) {
-        headers['Cookie'] = req.headers.cookie;
-        console.log(`[SCADA API] Forwarding cookie:`, req.headers.cookie.substring(0, 50));
+      if (clientCookie) {
+        headers['Cookie'] = clientCookie;
+        console.log(`[SCADA API] Forwarding cookie:`, clientCookie.substring(0, 50));
       } else {
         console.log('[SCADA API] No cookie received!');
       }
@@ -120,10 +123,13 @@ export default async function handler(req, res) {
     } else if (req.method === 'GET') {
       const headers = { 'Accept': 'application/json' };
       // 클라이언트로부터 받은 쿠키를 백엔드로 전달
+      // X-Session-Cookie 헤더를 우선 확인 (브라우저가 Cookie 헤더 직접 설정 금지)
+      const clientCookie = req.headers['x-session-cookie'] || req.headers.cookie;
+      console.log(`[SCADA API] X-Session-Cookie:`, req.headers['x-session-cookie']?.substring(0, 50));
       console.log(`[SCADA API] req.headers.cookie:`, req.headers.cookie);
-      if (req.headers.cookie) {
-        headers['Cookie'] = req.headers.cookie;
-        console.log(`[SCADA API] Forwarding cookie:`, req.headers.cookie.substring(0, 50));
+      if (clientCookie) {
+        headers['Cookie'] = clientCookie;
+        console.log(`[SCADA API] Forwarding cookie:`, clientCookie.substring(0, 50));
       } else {
         console.log('[SCADA API] No cookie received!');
       }

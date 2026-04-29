@@ -72,7 +72,7 @@ async function fetchDeviceDetail(device) {
     const sessionCookie = localStorage.getItem('sessionCookie');
     const headers = {};
     if (sessionCookie) {
-      headers['Cookie'] = sessionCookie;
+      headers['X-Session-Cookie'] = sessionCookie;
     }
 
     const response = await fetch(
@@ -104,7 +104,7 @@ async function postSpcRefresh(recordId) {
     const sessionCookie = localStorage.getItem('sessionCookie');
     const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
     if (sessionCookie) {
-      headers['Cookie'] = sessionCookie;
+      headers['X-Session-Cookie'] = sessionCookie;
     }
 
     const response = await fetch(`${API_BASE}`, {
