@@ -700,7 +700,7 @@ export default function App() {
       params.append('userPasswd', userPasswd);
       params.append('g-recaptcha-response', '');
 
-      const url = `${API_BASE}/ajax/users?action=login`;
+      const url = `${API_BASE}?path=/ajax/users&action=login`;
       console.log('📡 Request URL:', url);
       console.log('📤 Request body:', params.toString());
 
