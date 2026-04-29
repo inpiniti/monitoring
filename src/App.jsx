@@ -29,16 +29,29 @@ async function fetchDeviceList() {
   try {
     console.log('🔄 Fetching device list from API...');
     const sessionCookie = localStorage.getItem('sessionCookie');
-    const headers = {};
-    if (sessionCookie) {
-      headers['Cookie'] = sessionCookie;
-      console.log('🍪 Using session cookie from storage');
+
+    // 세션 쿠키가 없으면 요청하지 않음
+    if (!sessionCookie) {
+      console.warn('⚠️ Session cookie not found - user not logged in');
+      return [];
     }
+
+    const headers = { 'Cookie': sessionCookie };
+    console.log('🍪 Using session cookie from storage');
 
     const response = await fetch(`${API_BASE}?path=/ajax/devices&action=list&searchType=&searchStatusUse=Active`, {
       credentials: 'include',
       headers,
     });
+
+    // 401/미인증 응답 처리
+    if (response.status === 401) {
+      console.warn('⚠️ Session expired - redirecting to login');
+      localStorage.removeItem('isLoggedIn');
+      localStorage.removeItem('sessionCookie');
+      return [];
+    }
+
     if (!response.ok) throw new Error(`API error: ${response.status}`);
     const result = await response.json();
     if (result.code !== 0) throw new Error(result.message);
@@ -703,7 +716,12 @@ export default function App() {
   const [selected, setSelected] = useState(null);
   const [query, setQuery] = useState("");
   const [typeFilters, setTypeFilters] = useState({ A: true, B: true, C: true });
-  const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem('isLoggedIn') === 'true');
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    // 로그인 상태와 세션 쿠키 모두 확인
+    const loginFlag = localStorage.getItem('isLoggedIn') === 'true';
+    const sessionCookie = localStorage.getItem('sessionCookie');
+    return loginFlag && !!sessionCookie;
+  });
   const [loginError, setLoginError] = useState(null);
   const [updatedIds, setUpdatedIds] = useState(new Set());
   const [deviceDetail, setDeviceDetail] = useState(null);
