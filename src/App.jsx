@@ -28,8 +28,16 @@ const getTimestamp = (date = new Date()) => {
 async function fetchDeviceList() {
   try {
     console.log('🔄 Fetching device list from API...');
+    const sessionCookie = localStorage.getItem('sessionCookie');
+    const headers = {};
+    if (sessionCookie) {
+      headers['Cookie'] = sessionCookie;
+      console.log('🍪 Using session cookie from storage');
+    }
+
     const response = await fetch(`${API_BASE}?path=/ajax/devices&action=list&searchType=&searchStatusUse=Active`, {
       credentials: 'include',
+      headers,
     });
     if (!response.ok) throw new Error(`API error: ${response.status}`);
     const result = await response.json();
@@ -48,9 +56,15 @@ async function fetchDeviceDetail(device) {
     const now = new Date();
     const to = getTimestamp(now);
     const from = getTimestamp(new Date(now.getTime() - 12 * 3600000));
+    const sessionCookie = localStorage.getItem('sessionCookie');
+    const headers = {};
+    if (sessionCookie) {
+      headers['Cookie'] = sessionCookie;
+    }
+
     const response = await fetch(
       `${API_BASE}?path=/ajax/devicedataBs&action=list2&site=${device.site}&type=${device.type}&deviceKey=${device.deviceKey}&statusDatetimeFr=${from}&statusDatetimeTo=${to}&uuid=${from}_${to}`,
-      { credentials: 'include' }
+      { credentials: 'include', headers }
     );
     if (!response.ok) throw new Error(`API error: ${response.status}`);
     const result = await response.json();
@@ -74,10 +88,16 @@ async function postSpcRefresh(recordId) {
     params.append('record', recordId);
     params.append('statusOnly', 'false');
 
+    const sessionCookie = localStorage.getItem('sessionCookie');
+    const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+    if (sessionCookie) {
+      headers['Cookie'] = sessionCookie;
+    }
+
     const response = await fetch(`${API_BASE}`, {
       method: 'POST',
       body: params,
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers,
       credentials: 'include',
     });
     if (!response.ok) throw new Error(`API error: ${response.status}`);
@@ -742,6 +762,11 @@ export default function App() {
         // 세션 정보 저장
         if (result.data) {
           localStorage.setItem('sessionInfo', JSON.stringify(result.data));
+        }
+        // 쿠키 저장 (수동 쿠키 관리)
+        if (result.sessionCookie) {
+          localStorage.setItem('sessionCookie', result.sessionCookie);
+          console.log('💾 Session cookie saved:', result.sessionCookie.substring(0, 50));
         }
       } else {
         throw new Error(result.message || '로그인 실패');

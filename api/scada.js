@@ -110,6 +110,12 @@ export default async function handler(req, res) {
         });
       }
 
+      // 로그인 응답에 쿠키 정보 추가 (클라이언트가 수동으로 저장하도록)
+      if (setCookie && path === '/ajax/users') {
+        data.sessionCookie = setCookie;
+        console.log(`[SCADA API] Added sessionCookie to response body`);
+      }
+
       return res.status(200).json(data);
     } else if (req.method === 'GET') {
       const headers = { 'Accept': 'application/json' };
