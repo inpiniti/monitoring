@@ -69,7 +69,7 @@ async function fetchDeviceList() {
     // 세션 쿠키가 없으면 요청하지 않음
     if (!sessionCookie) {
       console.warn('⚠️ Session cookie not found - user not logged in');
-      return [];
+      return { error: 'SESSION_EXPIRED' };
     }
 
     console.log('🍪 Using session cookie from storage');
@@ -83,11 +83,22 @@ async function fetchDeviceList() {
       console.warn('⚠️ Session expired - redirecting to login');
       localStorage.removeItem('isLoggedIn');
       localStorage.removeItem('sessionCookie');
-      return [];
+      return { error: 'SESSION_EXPIRED' };
     }
 
     if (!response.ok) throw new Error(`API error: ${response.status}`);
-    const result = await response.json();
+
+    const responseText = await response.text();
+    let result;
+    try {
+      result = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('❌ Invalid JSON response - session may have expired:', parseError);
+      localStorage.removeItem('isLoggedIn');
+      localStorage.removeItem('sessionCookie');
+      return { error: 'INVALID_RESPONSE' };
+    }
+
     if (result.code !== 0) throw new Error(result.message);
     console.log('✅ Device list loaded:', result.data?.length, 'devices');
     return result.data || [];
@@ -110,8 +121,27 @@ async function fetchDeviceDetail(device) {
     const response = await fetch(
       `${API_BASE}?path=/ajax/devicedataBs&action=list2&site=${device.site}&type=${device.type}&deviceKey=${device.deviceKey}&statusDatetimeFr=${from}&statusDatetimeTo=${to}&uuid=${from}_${to}${cookieParam}`
     );
+
+    if (response.status === 401) {
+      console.warn('⚠️ Session expired during detail fetch');
+      localStorage.removeItem('isLoggedIn');
+      localStorage.removeItem('sessionCookie');
+      return { error: 'SESSION_EXPIRED' };
+    }
+
     if (!response.ok) throw new Error(`API error: ${response.status}`);
-    const result = await response.json();
+
+    const responseText = await response.text();
+    let result;
+    try {
+      result = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('❌ Invalid JSON response during detail fetch - session may have expired:', parseError);
+      localStorage.removeItem('isLoggedIn');
+      localStorage.removeItem('sessionCookie');
+      return { error: 'INVALID_RESPONSE' };
+    }
+
     if (result.code !== 0) throw new Error(result.message);
     return result.data;
   } catch (error) {
@@ -874,6 +904,14 @@ export default function App() {
     const pollDevices = async () => {
       try {
         const devices = await fetchDeviceList();
+
+        // 세션 만료 또는 인증 실패 감지
+        if (devices && devices.error) {
+          console.warn('⚠️ Session error detected:', devices.error);
+          setIsLoggedIn(false);
+          return;
+        }
+
         const stationsFromApi = devices.map((d, idx) => {
           const typeMap = { "A": "regional", "B": "district", "C": "industrial" };
           const timestamp = d.statusDatetime || new Date().toISOString();
@@ -973,6 +1011,14 @@ export default function App() {
         if (!station || !station.site) return;
 
         const detail = await fetchDeviceDetail(station);
+
+        // 세션 만료 감지
+        if (detail && detail.error) {
+          console.warn('⚠️ Session error during detail fetch:', detail.error);
+          setIsLoggedIn(false);
+          return;
+        }
+
         if (!detail || !detail.data || detail.data.length === 0) return;
 
         setDeviceDetail(detail.data);

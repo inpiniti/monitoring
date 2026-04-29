@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(git branch *)",
-      "Bash(npm list *)"
+      "Bash(npm list *)",
+      "Bash(netstat -ano)",
+      "Bash(taskkill /PID 8312 /F)"
     ],
     "additionalDirectories": [
       "c:\\Users\\USER\\git\\memo\\monitoring\\api\\scada\\ajax"

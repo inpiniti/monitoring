@@ -105,9 +105,9 @@ export default async function handler(req, res) {
         data = JSON.parse(responseText);
       } catch (e) {
         console.error('Failed to parse JSON:', e);
-        return res.status(200).json({
+        return res.status(401).json({
           code: -1,
-          message: 'Invalid JSON response from API',
+          message: 'Invalid JSON response from API - session expired',
           error: {},
         });
       }
@@ -151,9 +151,9 @@ export default async function handler(req, res) {
         data = JSON.parse(responseText);
       } catch (e) {
         console.error('Failed to parse JSON:', e);
-        return res.status(200).json({
+        return res.status(401).json({
           code: -1,
-          message: 'Invalid JSON response from API',
+          message: 'Invalid JSON response from API - session expired',
           error: {},
         });
       }
