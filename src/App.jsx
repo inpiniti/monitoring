@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMap, Tooltip as MapTooltip } from 'react-leaflet';
 import L from 'leaflet';
 import {
   I, STATION_TYPE_META, Topbar, KpiStrip, SidebarLeft
@@ -19,6 +19,30 @@ import 'leaflet/dist/leaflet.css';
 // Vercel에서는 단일 /api/scada 엔드포인트로 모든 요청을 라우팅
 // path 파라미터로 실제 경로를 전달
 const API_BASE = '/api/scada';
+
+// ─── 디바이스 이름 기반 위경도 매핑 ─────────────────────────────────
+const DEVICE_LOCATIONS = {
+  '내유동 626-4': { lat: 37.7265465034934, lng: 126.849462827731 },
+  '내유동 576': { lat: 37.7245083117685, lng: 126.845412737854 },
+  '내유동': { lat: 37.7230475229123, lng: 126.854072808634 },
+  '사우공원': { lat: 37.622840603799915, lng: 126.72363650166204 },
+  '사우대림': { lat: 37.6231166, lng: 126.7164603 },
+  '사우현대': { lat: 37.6209082564081, lng: 126.72298101264 },
+  '사우동 857': { lat: 37.6237756921991, lng: 126.725238281589 },
+  '북변동 815': { lat: 37.6218058989454, lng: 126.71909002094 },
+  '북변동 802': { lat: 37.6262316440699, lng: 126.713774569723 },
+  '영등포동 647': { lat: 37.5115335007354, lng: 126.90238989779 },
+};
+
+function findDeviceLocation(name) {
+  if (!name) return null;
+  // 긴 키워드부터 매칭 (정확한 매칭 우선)
+  const keys = Object.keys(DEVICE_LOCATIONS).sort((a, b) => b.length - a.length);
+  for (const key of keys) {
+    if (name.includes(key)) return DEVICE_LOCATIONS[key];
+  }
+  return null;
+}
 
 const getTimestamp = (date = new Date()) => {
   const pad = (n) => String(n).padStart(2, '0');
@@ -153,7 +177,10 @@ function MapController({ selectedId, stations }) {
 
 // ─── Map View ──────────────────────────────────────────
 function MapView({ stations, selected, setSelected, typeFilters }){
-  const filteredStations = stations.filter(s => typeFilters[s.type]);
+  // 위경도가 있는 디바이스만 지도에 표시
+  const filteredStations = stations.filter(s =>
+    typeFilters[s.type] && s.hasLocation && s.lat != null && s.lng != null
+  );
   return (
     <div className="map-wrap" style={{ flex: 1, position: 'relative' }}>
       <MapContainer
@@ -172,7 +199,37 @@ function MapView({ stations, selected, setSelected, typeFilters }){
             position={[s.lat, s.lng]}
             icon={createCustomIcon(s.status, selected === s.id)}
             eventHandlers={{ click: () => setSelected(s.id) }}
-          />
+          >
+            <MapTooltip direction="top" offset={[0, -8]} opacity={1}>
+              <div style={{ minWidth: 140 }}>
+                <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 4 }}>{s.name}</div>
+                <div style={{ fontSize: 10, color: '#888', marginBottom: 6 }}>
+                  {s.id} · {STATION_TYPE_META[s.type]?.label || '정압기'}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+                  <span style={{ color: '#888' }}>현재 압력</span>
+                  <span style={{ fontWeight: 600, fontFamily: 'monospace' }}>
+                    {s.main.pressure.toFixed(3)} MPa
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginTop: 2 }}>
+                  <span style={{ color: '#888' }}>설정 압력</span>
+                  <span style={{ fontWeight: 600, fontFamily: 'monospace' }}>
+                    {s.targetPressure.toFixed(3)} MPa
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginTop: 2 }}>
+                  <span style={{ color: '#888' }}>가동 상태</span>
+                  <span style={{
+                    fontWeight: 600,
+                    color: s.main.active ? '#4ade80' : '#888',
+                  }}>
+                    {s.main.active ? '주가동' : '보조가동'}
+                  </span>
+                </div>
+              </div>
+            </MapTooltip>
+          </Marker>
         ))}
         <MapController selectedId={selected} stations={stations} />
       </MapContainer>
@@ -801,16 +858,19 @@ export default function App() {
         const stationsFromApi = devices.map((d, idx) => {
           const typeMap = { "A": "regional", "B": "district", "C": "industrial" };
           const timestamp = d.statusDatetime || new Date().toISOString();
+          const deviceName = d.name || `${d.deviceId}`;
+          const location = findDeviceLocation(deviceName);
           return {
             id: d.id,
-            name: d.name || `${d.deviceId}`,
+            name: deviceName,
             site: d.site,
             type: d.type,
             deviceKey: d.deviceKey,
             deviceId: d.deviceId,
             mapType: typeMap[d.type] || "district",
-            lat: 37.4 + (idx / devices.length) * 0.4,
-            lng: 126.7 + (idx / devices.length) * 0.5,
+            lat: location?.lat ?? null,
+            lng: location?.lng ?? null,
+            hasLocation: !!location,
             status: idx < 2 ? (idx === 0 ? "warn" : "ok") : "ok",
             region: "지역",
             targetPressure: d.Pcon || 1.65,
