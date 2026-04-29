@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   // CORS 헤더 설정
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cookie');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
 
   if (req.method === 'OPTIONS') {
@@ -60,12 +60,18 @@ export default async function handler(req, res) {
         });
       }
 
+      const headers = {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'Mozilla/5.0',
+      };
+      // 클라이언트로부터 받은 쿠키를 백엔드로 전달
+      if (req.headers.cookie) {
+        headers['Cookie'] = req.headers.cookie;
+      }
+
       const response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'User-Agent': 'Mozilla/5.0',
-        },
+        headers,
         body: bodyString,
         credentials: 'include',
       });
@@ -87,9 +93,15 @@ export default async function handler(req, res) {
 
       return res.status(200).json(data);
     } else if (req.method === 'GET') {
+      const headers = { 'Accept': 'application/json' };
+      // 클라이언트로부터 받은 쿠키를 백엔드로 전달
+      if (req.headers.cookie) {
+        headers['Cookie'] = req.headers.cookie;
+      }
+
       const response = await fetch(url, {
         method: 'GET',
-        headers: { 'Accept': 'application/json' },
+        headers,
         credentials: 'include',
       });
 

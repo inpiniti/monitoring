@@ -28,7 +28,9 @@ const getTimestamp = (date = new Date()) => {
 async function fetchDeviceList() {
   try {
     console.log('🔄 Fetching device list from API...');
-    const response = await fetch(`${API_BASE}?path=/ajax/devices&action=list&searchType=&searchStatusUse=Active`);
+    const response = await fetch(`${API_BASE}?path=/ajax/devices&action=list&searchType=&searchStatusUse=Active`, {
+      credentials: 'include',
+    });
     if (!response.ok) throw new Error(`API error: ${response.status}`);
     const result = await response.json();
     if (result.code !== 0) throw new Error(result.message);
@@ -47,7 +49,8 @@ async function fetchDeviceDetail(device) {
     const to = getTimestamp(now);
     const from = getTimestamp(new Date(now.getTime() - 12 * 3600000));
     const response = await fetch(
-      `${API_BASE}?path=/ajax/devicedataBs&action=list2&site=${device.site}&type=${device.type}&deviceKey=${device.deviceKey}&statusDatetimeFr=${from}&statusDatetimeTo=${to}&uuid=${from}_${to}`
+      `${API_BASE}?path=/ajax/devicedataBs&action=list2&site=${device.site}&type=${device.type}&deviceKey=${device.deviceKey}&statusDatetimeFr=${from}&statusDatetimeTo=${to}&uuid=${from}_${to}`,
+      { credentials: 'include' }
     );
     if (!response.ok) throw new Error(`API error: ${response.status}`);
     const result = await response.json();
@@ -75,6 +78,7 @@ async function postSpcRefresh(recordId) {
       method: 'POST',
       body: params,
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      credentials: 'include',
     });
     if (!response.ok) throw new Error(`API error: ${response.status}`);
     const result = await response.json();
@@ -727,9 +731,14 @@ export default function App() {
 
       if (result.code === 0) {
         console.log('✅ 로그인 성공!');
+        console.log('📋 Login response:', result);
         setIsLoggedIn(true);
         setLoginError(null);
         localStorage.setItem('isLoggedIn', 'true');
+        // 세션 정보 저장
+        if (result.data) {
+          localStorage.setItem('sessionInfo', JSON.stringify(result.data));
+        }
       } else {
         throw new Error(result.message || '로그인 실패');
       }
