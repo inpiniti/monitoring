@@ -34,14 +34,26 @@ const DEVICE_LOCATIONS = {
   '영등포동 647': { lat: 37.5115335007354, lng: 126.90238989779 },
 };
 
-function findDeviceLocation(name) {
+function findDeviceLocation(name, deviceId) {
   if (!name) return null;
   // 긴 키워드부터 매칭 (정확한 매칭 우선)
   const keys = Object.keys(DEVICE_LOCATIONS).sort((a, b) => b.length - a.length);
   for (const key of keys) {
-    if (name.includes(key)) return DEVICE_LOCATIONS[key];
+    if (name.includes(key)) return { ...DEVICE_LOCATIONS[key], isApproximate: false };
   }
-  return null;
+  // 매칭 안 됨: 매핑된 위치 중 하나를 시드로 선택해서 작은 오프셋 부여
+  const locations = Object.values(DEVICE_LOCATIONS);
+  const seedStr = String(deviceId || name);
+  const seed = seedStr.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  const base = locations[seed % locations.length];
+  // ±0.005도 (약 500m) 범위의 deterministic 오프셋
+  const offsetLat = (((seed * 7) % 100) - 50) / 10000;
+  const offsetLng = (((seed * 13) % 100) - 50) / 10000;
+  return {
+    lat: base.lat + offsetLat,
+    lng: base.lng + offsetLng,
+    isApproximate: true,
+  };
 }
 
 const getTimestamp = (date = new Date()) => {
@@ -166,7 +178,7 @@ function MapController({ selectedId, stations }) {
   useEffect(() => {
     if (selectedId && selectedId !== lastId.current) {
       const s = stations.find(x => x.id === selectedId);
-      if (s) {
+      if (s && s.lat != null && s.lng != null) {
         map.flyTo([s.lat, s.lng], map.getZoom(), { duration: 1.5 });
       }
       lastId.current = selectedId;
@@ -202,7 +214,14 @@ function MapView({ stations, selected, setSelected, typeFilters }){
           >
             <MapTooltip direction="top" offset={[0, -8]} opacity={1}>
               <div style={{ minWidth: 140 }}>
-                <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 4 }}>{s.name}</div>
+                <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 4 }}>
+                  {s.name}
+                  {s.isApproximateLocation && (
+                    <span style={{ marginLeft: 6, fontSize: 9, color: '#f59e0b', fontWeight: 500 }}>
+                      ※ 근사 위치
+                    </span>
+                  )}
+                </div>
                 <div style={{ fontSize: 10, color: '#888', marginBottom: 6 }}>
                   {s.id} · {STATION_TYPE_META[s.type]?.label || '정압기'}
                 </div>
@@ -859,7 +878,7 @@ export default function App() {
           const typeMap = { "A": "regional", "B": "district", "C": "industrial" };
           const timestamp = d.statusDatetime || new Date().toISOString();
           const deviceName = d.name || `${d.deviceId}`;
-          const location = findDeviceLocation(deviceName);
+          const location = findDeviceLocation(deviceName, d.deviceId || d.id);
           return {
             id: d.id,
             name: deviceName,
@@ -868,9 +887,10 @@ export default function App() {
             deviceKey: d.deviceKey,
             deviceId: d.deviceId,
             mapType: typeMap[d.type] || "district",
-            lat: location?.lat ?? null,
-            lng: location?.lng ?? null,
-            hasLocation: !!location,
+            lat: location.lat,
+            lng: location.lng,
+            hasLocation: true,
+            isApproximateLocation: location.isApproximate,
             status: idx < 2 ? (idx === 0 ? "warn" : "ok") : "ok",
             region: "지역",
             targetPressure: d.Pcon || 1.65,
